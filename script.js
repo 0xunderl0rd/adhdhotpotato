@@ -2,6 +2,8 @@ const CLICK_COOLDOWN_MS = 200;
 const FINAL_CLICK_MESSAGE_INTERVAL = 100;
 const POPUP_VISIBLE_MS = 2400;
 const POPUP_HIDE_MS = 3200;
+const FINAL_DOINK_MIN_CLICKS = 3;
+const FINAL_DOINK_MAX_CLICKS = 7;
 
 const finalClickMessages = [
   "that's enough, weirdo.",
@@ -67,6 +69,11 @@ const audioSources = {
     'assets/sfx/children-cheer01.mp3',
     'assets/sfx/children-cheer02.mp3',
   ],
+  doinks: [
+    'assets/sfx/doink01.mp3',
+    'assets/sfx/doink02.mp3',
+    'assets/sfx/doink03.mp3',
+  ],
   theme: 'assets/sfx/potato-theme-loop.mp3',
 };
 
@@ -121,6 +128,7 @@ let themeAudio = null;
 let finalSequenceAudio = [];
 let finalSequenceToken = 0;
 let finalClickCount = 0;
+let nextFinalDoinkAt = getNextDoinkClick();
 let popupHideTimer = null;
 let popupResetTimer = null;
 
@@ -203,6 +211,7 @@ function resetExperience() {
   phaseClicks = 0;
   totalClicks = 0;
   finalClickCount = 0;
+  nextFinalDoinkAt = getNextDoinkClick();
   isTransitioning = false;
   lastClickAt = -Infinity;
 
@@ -224,6 +233,11 @@ function pulse(className) {
 
 function handleFinalPhaseClick() {
   finalClickCount += 1;
+
+  if (finalClickCount >= nextFinalDoinkAt) {
+    playRandomDoink();
+    nextFinalDoinkAt = finalClickCount + getNextDoinkClick();
+  }
 
   if (finalClickCount % FINAL_CLICK_MESSAGE_INTERVAL === 0) {
     const messageIndex = (finalClickCount / FINAL_CLICK_MESSAGE_INTERVAL - 1) % finalClickMessages.length;
@@ -266,6 +280,16 @@ function hideMessagePopup(immediate = false) {
 function playRandomPoke() {
   const src = audioSources.pokes[Math.floor(Math.random() * audioSources.pokes.length)];
   playOneShot(src, 0.62);
+}
+
+function playRandomDoink() {
+  const src = audioSources.doinks[Math.floor(Math.random() * audioSources.doinks.length)];
+  playOneShot(src, 0.72);
+}
+
+function getNextDoinkClick() {
+  const range = FINAL_DOINK_MAX_CLICKS - FINAL_DOINK_MIN_CLICKS + 1;
+  return FINAL_DOINK_MIN_CLICKS + Math.floor(Math.random() * range);
 }
 
 function playPopOpen(withFinalSequence = false) {
