@@ -272,27 +272,34 @@ function playPopOpen(withFinalSequence = false) {
   const pop = makeAudio(audioSources.pop, 0.82);
 
   if (withFinalSequence) {
-    const token = ++finalSequenceToken;
+    const token = finalSequenceToken + 1;
     pop.onended = () => {
       if (token === finalSequenceToken && phaseIndex === phases.length - 1) {
-        playFinalSequence();
+        playFinalCheers();
       }
     };
+    playAudio(pop);
+    startFinalTheme();
+    return;
   }
 
   playAudio(pop);
 }
 
-function playFinalSequence() {
+function startFinalTheme() {
   stopFinalAudio();
-  const firstCheer = makeAudio(audioSources.cheers[0], 0.82);
-  const secondCheer = makeAudio(audioSources.cheers[1], 0.82);
   themeAudio = makeAudio(audioSources.theme, 0.34);
   themeAudio.loop = true;
-  finalSequenceAudio = [firstCheer, secondCheer, themeAudio];
+  finalSequenceAudio = [themeAudio];
+  playAudio(themeAudio);
+}
+
+function playFinalCheers() {
+  const firstCheer = makeAudio(audioSources.cheers[0], 0.82);
+  const secondCheer = makeAudio(audioSources.cheers[1], 0.82);
+  finalSequenceAudio.push(firstCheer, secondCheer);
 
   firstCheer.onended = () => playAudio(secondCheer);
-  secondCheer.onended = () => playAudio(themeAudio);
   playAudio(firstCheer);
 }
 
@@ -338,17 +345,38 @@ function stopAudio(audio) {
 }
 
 function spawnTapParticles(x, y) {
-  const symbols = phaseIndex === 0 ? ['✦', '✧', '▱'] : ['🥔', '✦', '·'];
-  for (let i = 0; i < 7; i += 1) {
+  const symbols = getTapSymbols();
+  const count = phaseIndex === phases.length - 1 ? 22 : 7;
+  const spread = phaseIndex === phases.length - 1 ? 130 : 64;
+
+  for (let i = 0; i < count; i += 1) {
     createParticle({
       x,
       y,
       symbol: symbols[i % symbols.length],
-      spread: 64,
-      life: 520 + Math.random() * 320,
-      size: 0.75 + Math.random() * 0.55,
+      spread,
+      life: 520 + Math.random() * (phaseIndex === phases.length - 1 ? 760 : 320),
+      size: phaseIndex === phases.length - 1
+        ? 0.85 + Math.random() * 1.15
+        : 0.75 + Math.random() * 0.55,
     });
   }
+}
+
+function getTapSymbols() {
+  if (phaseIndex === 0) {
+    return ['✦', '✧', '▱'];
+  }
+
+  if (phaseIndex === phases.length - 1) {
+    return ['🥔', '🦄', '🦴', '🍺', '🧈', '✨', '🔥', '🌀', '🍟', '🎉', '💀', '⚡', '🛸', '🧃', '🥨', '🫠'];
+  }
+
+  if (phaseIndex >= 2) {
+    return ['🥔', '🧈', '✨', '✦', '·'];
+  }
+
+  return ['🥔', '✦', '·'];
 }
 
 function spawnRevealParticles(type) {
