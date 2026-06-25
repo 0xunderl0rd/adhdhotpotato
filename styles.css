@@ -55,6 +55,51 @@ body {
   border-radius: 999rem;
 }
 
+.reset-button {
+  width: 3rem;
+  height: 3rem;
+  display: grid;
+  place-items: center;
+  position: fixed;
+  right: clamp(1rem, 4vw, 2rem);
+  bottom: clamp(1rem, 4vw, 2rem);
+  z-index: 3;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.86);
+  color: #7d4b1f;
+  box-shadow:
+    0 0.55rem 1.4rem rgba(80, 47, 17, 0.18),
+    inset 0 0 0 1px rgba(125, 75, 31, 0.18);
+  cursor: pointer;
+  font: 700 1.55rem/1 system-ui, sans-serif;
+  backdrop-filter: blur(0.5rem);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.reset-button:hover {
+  transform: translateY(-0.14rem) rotate(-18deg);
+  box-shadow:
+    0 0.75rem 1.65rem rgba(80, 47, 17, 0.22),
+    inset 0 0 0 1px rgba(125, 75, 31, 0.22);
+}
+
+.reset-button:active {
+  transform: translateY(0.04rem) rotate(18deg) scale(0.96);
+}
+
+.reset-button:focus-visible {
+  outline: 0.2rem solid rgba(131, 77, 29, 0.56);
+  outline-offset: 0.25rem;
+}
+
+.reset-button[hidden] {
+  display: none;
+}
+
 .hot-potato {
   display: block;
   width: 100%;

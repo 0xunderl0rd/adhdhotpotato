@@ -1,10 +1,26 @@
+const CLICK_COOLDOWN_MS = 200;
+
+const audioSources = {
+  pokes: [
+    'assets/sfx/poke01.mp3',
+    'assets/sfx/poke02.mp3',
+    'assets/sfx/poke03.mp3',
+  ],
+  pop: 'assets/sfx/pop-open.mp3',
+  cheers: [
+    'assets/sfx/children-cheer01.mp3',
+    'assets/sfx/children-cheer02.mp3',
+  ],
+  theme: 'assets/sfx/potato-theme-loop.mp3',
+};
+
 const phases = [
   {
     src: 'assets/foil-closed.png',
     alt: 'A closed steaming ball of crinkled foil',
     label: 'Click the closed foil hot potato',
     status: 'The hot potato is wrapped in foil.',
-    clicks: 9,
+    clicks: 18,
     burst: 'foil',
   },
   {
@@ -12,7 +28,7 @@ const phases = [
     alt: 'A whole closed baked potato sitting in open crinkled foil',
     label: 'Click the closed baked potato',
     status: 'The foil opened and revealed a whole baked potato.',
-    clicks: 8,
+    clicks: 16,
     burst: 'potato',
   },
   {
@@ -20,7 +36,7 @@ const phases = [
     alt: 'A steaming baked potato open in crinkled foil',
     label: 'Click the open baked potato',
     status: 'The baked potato split open and started steaming.',
-    clicks: 12,
+    clicks: 24,
     burst: 'potato',
   },
   {
@@ -37,11 +53,16 @@ const clicker = document.querySelector('.clicker');
 const image = document.querySelector('.hot-potato');
 const particles = document.querySelector('.particle-field');
 const status = document.querySelector('[aria-live]');
+const resetButton = document.querySelector('.reset-button');
 
 let phaseIndex = 0;
 let phaseClicks = 0;
 let totalClicks = 0;
 let isTransitioning = false;
+let lastClickAt = -Infinity;
+let themeAudio = null;
+let finalSequenceAudio = [];
+let finalSequenceToken = 0;
 
 for (const phase of phases.slice(1)) {
   const preload = new Image();
@@ -49,6 +70,7 @@ for (const phase of phases.slice(1)) {
 }
 
 clicker.addEventListener('click', (event) => {
+  const now = performance.now();
   const rect = clicker.getBoundingClientRect();
   const x = event.clientX || rect.left + rect.width / 2;
   const y = event.clientY || rect.top + rect.height / 2;
@@ -58,18 +80,29 @@ clicker.addEventListener('click', (event) => {
     return;
   }
 
+  if (now - lastClickAt < CLICK_COOLDOWN_MS) {
+    return;
+  }
+
+  lastClickAt = now;
   totalClicks += 1;
   phaseClicks += 1;
   clicker.style.setProperty('--tap-x', `${((x - rect.left) / rect.width) * 100}%`);
   clicker.style.setProperty('--tap-y', `${((y - rect.top) / rect.height) * 100}%`);
   clicker.style.setProperty('--wiggle', `${Math.min(phaseClicks, 9)}`);
 
+  playRandomPoke();
   pulse('tapped');
   spawnTapParticles(x, y);
 
   if (phaseClicks >= phases[phaseIndex].clicks) {
     revealNextPhase();
   }
+});
+
+resetButton.addEventListener('click', () => {
+  stopFinalAudio();
+  resetExperience();
 });
 
 function revealNextPhase() {
@@ -84,7 +117,9 @@ function revealNextPhase() {
   phaseClicks = 0;
   isTransitioning = true;
   const incoming = phases[phaseIndex];
+  const isFinalReveal = phaseIndex === phases.length - 1;
 
+  playPopOpen(isFinalReveal);
   pulse(outgoing.burst === 'foil' ? 'cracking' : 'launching');
   spawnRevealParticles(outgoing.burst);
 
@@ -93,15 +128,106 @@ function revealNextPhase() {
     image.alt = incoming.alt;
     clicker.setAttribute('aria-label', incoming.label);
     status.textContent = incoming.status;
+    resetButton.hidden = !isFinalReveal;
     isTransitioning = false;
     pulse('revealed');
   }, 260);
+}
+
+function resetExperience() {
+  phaseIndex = 0;
+  phaseClicks = 0;
+  totalClicks = 0;
+  isTransitioning = false;
+  lastClickAt = -Infinity;
+
+  const firstPhase = phases[0];
+  image.src = firstPhase.src;
+  image.alt = firstPhase.alt;
+  clicker.setAttribute('aria-label', firstPhase.label);
+  status.textContent = firstPhase.status;
+  resetButton.hidden = true;
+  clicker.classList.remove('tapped', 'cracking', 'launching', 'revealed', 'victory');
 }
 
 function pulse(className) {
   clicker.classList.remove('tapped', 'cracking', 'launching', 'revealed', 'victory');
   void clicker.offsetWidth;
   clicker.classList.add(className);
+}
+
+function playRandomPoke() {
+  const src = audioSources.pokes[Math.floor(Math.random() * audioSources.pokes.length)];
+  playOneShot(src, 0.62);
+}
+
+function playPopOpen(withFinalSequence = false) {
+  const pop = makeAudio(audioSources.pop, 0.82);
+
+  if (withFinalSequence) {
+    const token = ++finalSequenceToken;
+    pop.onended = () => {
+      if (token === finalSequenceToken && phaseIndex === phases.length - 1) {
+        playFinalSequence();
+      }
+    };
+  }
+
+  playAudio(pop);
+}
+
+function playFinalSequence() {
+  stopFinalAudio();
+  const firstCheer = makeAudio(audioSources.cheers[0], 0.82);
+  const secondCheer = makeAudio(audioSources.cheers[1], 0.82);
+  themeAudio = makeAudio(audioSources.theme, 0.34);
+  themeAudio.loop = true;
+  finalSequenceAudio = [firstCheer, secondCheer, themeAudio];
+
+  firstCheer.onended = () => playAudio(secondCheer);
+  secondCheer.onended = () => playAudio(themeAudio);
+  playAudio(firstCheer);
+}
+
+function stopFinalAudio() {
+  finalSequenceToken += 1;
+
+  for (const audio of finalSequenceAudio) {
+    stopAudio(audio);
+  }
+
+  if (themeAudio) {
+    stopAudio(themeAudio);
+  }
+
+  finalSequenceAudio = [];
+  themeAudio = null;
+}
+
+function playOneShot(src, volume = 1) {
+  const audio = makeAudio(src, volume);
+  playAudio(audio);
+  return audio;
+}
+
+function makeAudio(src, volume = 1) {
+  const audio = new Audio(src);
+  audio.volume = volume;
+  audio.preload = 'auto';
+  return audio;
+}
+
+function playAudio(audio) {
+  const result = audio.play();
+
+  if (result && typeof result.catch === 'function') {
+    result.catch(() => {});
+  }
+}
+
+function stopAudio(audio) {
+  audio.pause();
+  audio.currentTime = 0;
 }
 
 function spawnTapParticles(x, y) {
