@@ -190,6 +190,40 @@ body {
   will-change: transform, opacity;
 }
 
+.message-popup {
+  position: fixed;
+  left: 50%;
+  top: clamp(1.5rem, 12vh, 6.5rem);
+  z-index: 4;
+  max-width: min(86vw, 34rem);
+  padding: 0.72rem 1.05rem;
+  border-radius: 999rem;
+  background: rgba(255, 255, 255, 0.88);
+  color: #6f3f19;
+  box-shadow:
+    0 0.8rem 2.2rem rgba(80, 47, 17, 0.18),
+    inset 0 0 0 1px rgba(125, 75, 31, 0.14);
+  font: 700 clamp(1rem, 2.8vw, 1.35rem)/1.2 system-ui, sans-serif;
+  text-align: center;
+  letter-spacing: 0;
+  backdrop-filter: blur(0.65rem);
+  opacity: 0;
+  transform: translate(-50%, -0.65rem) scale(0.92) rotate(-1deg);
+  transition:
+    opacity 360ms ease,
+    transform 520ms cubic-bezier(0.18, 1.35, 0.32, 1);
+  pointer-events: none;
+}
+
+.message-popup.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1) rotate(0deg);
+}
+
+.message-popup[hidden] {
+  display: none;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -330,6 +364,11 @@ body {
   .clicker {
     width: min(92vw, 38rem);
   }
+
+  .message-popup {
+    top: clamp(1rem, 8vh, 3.25rem);
+    max-width: min(90vw, 22rem);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -346,5 +385,9 @@ body {
   .aura,
   .crack {
     display: none;
+  }
+
+  .message-popup {
+    transition-duration: 1ms !important;
   }
 }

@@ -1,4 +1,60 @@
 const CLICK_COOLDOWN_MS = 200;
+const FINAL_CLICK_MESSAGE_INTERVAL = 100;
+const POPUP_VISIBLE_MS = 2400;
+const POPUP_HIDE_MS = 3200;
+
+const finalClickMessages = [
+  "that's enough, weirdo.",
+  'get back to work...',
+  'the potato is starting to recognize you.',
+  'this is your performance review now.',
+  'hydration break. seriously.',
+  'the foil has filed a complaint.',
+  'you have achieved potato persistence.',
+  'there are no more secrets in here.',
+  'somewhere, a timer is judging you.',
+  'the potato appreciates the attention.',
+  'boss key not included.',
+  'this counts as cardio, barely.',
+  'you can stop whenever you want. allegedly.',
+  'still here? bold choice.',
+  'the tuber council is concerned.',
+  'your mouse deserves a union.',
+  'a watched potato never clocks out.',
+  'this is not the productivity app.',
+  'the steam is mostly awkward silence now.',
+  'okay, one more hundred then we talk.',
+  'excellent technique. questionable priorities.',
+  'the potato has entered witness protection.',
+  'there is no achievement. there is only potato.',
+  'your dedication has been noted and archived.',
+  'please blink twice if you need help.',
+  'the algorithm has no idea what to do with this.',
+  'some tabs were meant to be closed.',
+  'the potato is emotionally unavailable.',
+  'this is how legends become footnotes.',
+  'you have poked past reason.',
+  'the foil remembers every click.',
+  'still cheaper than a meeting.',
+  'a tiny spreadsheet somewhere misses you.',
+  'the potato theme is looping because of you.',
+  'do not cite this on your timesheet.',
+  'you have unlocked absolutely nothing.',
+  'the steam has unionized.',
+  'please return to your regularly scheduled chaos.',
+  'this is now a wellness concern.',
+  'fine. the potato salutes you.',
+  'you are now deep in the starch mines.',
+  'your cursor has seen things.',
+  'this clicker has no bottom. neither do you.',
+  'the potato is considering a restraining order.',
+  'productivity has left the chat.',
+  'you have become the hot potato.',
+  'the foil is no longer taking questions.',
+  'this is what infinite scroll warned us about.',
+  'a thousand clicks ago, there was hope.',
+  'okay, now it is performance art.',
+];
 
 const audioSources = {
   pokes: [
@@ -52,8 +108,9 @@ const phases = [
 const clicker = document.querySelector('.clicker');
 const image = document.querySelector('.hot-potato');
 const particles = document.querySelector('.particle-field');
-const status = document.querySelector('[aria-live]');
+const status = document.querySelector('.sr-only[aria-live]');
 const resetButton = document.querySelector('.reset-button');
+const messagePopup = document.querySelector('.message-popup');
 
 let phaseIndex = 0;
 let phaseClicks = 0;
@@ -63,6 +120,9 @@ let lastClickAt = -Infinity;
 let themeAudio = null;
 let finalSequenceAudio = [];
 let finalSequenceToken = 0;
+let finalClickCount = 0;
+let popupHideTimer = null;
+let popupResetTimer = null;
 
 for (const phase of phases.slice(1)) {
   const preload = new Image();
@@ -94,6 +154,10 @@ clicker.addEventListener('click', (event) => {
   playRandomPoke();
   pulse('tapped');
   spawnTapParticles(x, y);
+
+  if (phaseIndex === phases.length - 1) {
+    handleFinalPhaseClick();
+  }
 
   if (phaseClicks >= phases[phaseIndex].clicks) {
     revealNextPhase();
@@ -138,6 +202,7 @@ function resetExperience() {
   phaseIndex = 0;
   phaseClicks = 0;
   totalClicks = 0;
+  finalClickCount = 0;
   isTransitioning = false;
   lastClickAt = -Infinity;
 
@@ -147,6 +212,7 @@ function resetExperience() {
   clicker.setAttribute('aria-label', firstPhase.label);
   status.textContent = firstPhase.status;
   resetButton.hidden = true;
+  hideMessagePopup(true);
   clicker.classList.remove('tapped', 'cracking', 'launching', 'revealed', 'victory');
 }
 
@@ -154,6 +220,47 @@ function pulse(className) {
   clicker.classList.remove('tapped', 'cracking', 'launching', 'revealed', 'victory');
   void clicker.offsetWidth;
   clicker.classList.add(className);
+}
+
+function handleFinalPhaseClick() {
+  finalClickCount += 1;
+
+  if (finalClickCount % FINAL_CLICK_MESSAGE_INTERVAL === 0) {
+    const messageIndex = (finalClickCount / FINAL_CLICK_MESSAGE_INTERVAL - 1) % finalClickMessages.length;
+    showMessagePopup(finalClickMessages[messageIndex]);
+  }
+}
+
+function showMessagePopup(message) {
+  clearTimeout(popupHideTimer);
+  clearTimeout(popupResetTimer);
+  messagePopup.textContent = message;
+  messagePopup.hidden = false;
+  messagePopup.classList.remove('is-visible');
+  void messagePopup.offsetWidth;
+  messagePopup.classList.add('is-visible');
+
+  popupHideTimer = window.setTimeout(() => {
+    messagePopup.classList.remove('is-visible');
+  }, POPUP_VISIBLE_MS);
+
+  popupResetTimer = window.setTimeout(() => {
+    messagePopup.hidden = true;
+  }, POPUP_HIDE_MS);
+}
+
+function hideMessagePopup(immediate = false) {
+  clearTimeout(popupHideTimer);
+  clearTimeout(popupResetTimer);
+  messagePopup.classList.remove('is-visible');
+
+  if (immediate) {
+    messagePopup.hidden = true;
+  } else {
+    popupResetTimer = window.setTimeout(() => {
+      messagePopup.hidden = true;
+    }, POPUP_HIDE_MS - POPUP_VISIBLE_MS);
+  }
 }
 
 function playRandomPoke() {
