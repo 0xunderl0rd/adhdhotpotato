@@ -11,11 +11,13 @@ html,
 body {
   min-height: 100%;
   margin: 0;
+  overflow: hidden;
 }
 
 body {
   background:
-    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.85) 0 18rem, rgba(251, 245, 234, 0) 28rem),
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.9) 0 18rem, rgba(251, 245, 234, 0) 30rem),
+    radial-gradient(circle at 50% 95%, rgba(220, 159, 69, 0.16), rgba(251, 245, 234, 0) 22rem),
     #fbf5ea;
 }
 
@@ -24,11 +26,280 @@ body {
   display: grid;
   place-items: center;
   padding: clamp(1rem, 5vw, 4rem);
+  position: relative;
+  isolation: isolate;
+}
+
+.clicker {
+  --wiggle: 0;
+  --tap-x: 50%;
+  --tap-y: 50%;
+  width: min(78vw, 42rem);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  position: relative;
+  z-index: 1;
+  transform: translateZ(0);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.clicker:focus-visible {
+  outline: 0.25rem solid rgba(131, 77, 29, 0.56);
+  outline-offset: 0.55rem;
+  border-radius: 999rem;
 }
 
 .hot-potato {
   display: block;
-  width: min(78vw, 42rem);
+  width: 100%;
   max-height: 88svh;
   object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+  filter: drop-shadow(0 1.35rem 1.8rem rgba(80, 47, 17, 0.18));
+  transform-origin: 50% 72%;
+  transition:
+    filter 180ms ease,
+    transform 220ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.clicker:hover .hot-potato {
+  filter: drop-shadow(0 1.65rem 2rem rgba(80, 47, 17, 0.22));
+  transform: translateY(-0.35rem) scale(1.01);
+}
+
+.clicker.tapped .hot-potato {
+  animation: tap-shake 250ms cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+
+.clicker.revealed .hot-potato {
+  animation: reveal-pop 620ms cubic-bezier(0.18, 1.32, 0.3, 1);
+}
+
+.clicker.victory .hot-potato {
+  animation: victory-bounce 760ms cubic-bezier(0.18, 1.32, 0.3, 1);
+}
+
+.aura,
+.crack {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.aura {
+  background:
+    radial-gradient(circle at var(--tap-x) var(--tap-y), rgba(255, 229, 108, 0.52), rgba(255, 229, 108, 0) 14rem),
+    conic-gradient(from 0deg, rgba(255, 195, 78, 0), rgba(255, 195, 78, 0.46), rgba(255, 195, 78, 0));
+  mix-blend-mode: multiply;
+  opacity: 0;
+  transform: scale(0.8) rotate(0deg);
+}
+
+.clicker.tapped .aura {
+  animation: tap-aura 430ms ease-out;
+}
+
+.clicker.cracking .aura,
+.clicker.launching .aura {
+  animation: reveal-aura 680ms ease-out;
+}
+
+.crack {
+  opacity: 0;
+  background:
+    linear-gradient(82deg, transparent 47%, rgba(255, 255, 255, 0.98) 48% 51%, transparent 52%) 50% 42% / 34% 35% no-repeat,
+    linear-gradient(132deg, transparent 48%, rgba(255, 245, 173, 0.96) 49% 51%, transparent 52%) 47% 45% / 28% 22% no-repeat,
+    radial-gradient(circle, rgba(255, 240, 150, 0.86), rgba(255, 240, 150, 0) 32%);
+  filter: blur(0.2px);
+  transform: scale(0.68);
+}
+
+.clicker.cracking .crack,
+.clicker.launching .crack {
+  animation: crack-flash 640ms ease-out;
+}
+
+.particle-field {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.particle {
+  position: fixed;
+  translate: -50% -50%;
+  font-size: calc(1.25rem * var(--size));
+  line-height: 1;
+  animation: particle-flight var(--life) cubic-bezier(0.16, 0.95, 0.26, 1) forwards;
+  filter: drop-shadow(0 0.2rem 0.2rem rgba(99, 62, 27, 0.22));
+  will-change: transform, opacity;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes tap-shake {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  18% {
+    transform: translate(calc(-0.09rem * var(--wiggle)), 0.08rem) rotate(calc(-0.55deg * var(--wiggle))) scale(1.018, 0.985);
+  }
+
+  38% {
+    transform: translate(calc(0.1rem * var(--wiggle)), -0.06rem) rotate(calc(0.58deg * var(--wiggle))) scale(0.99, 1.018);
+  }
+
+  62% {
+    transform: translate(calc(-0.055rem * var(--wiggle)), 0.04rem) rotate(calc(-0.34deg * var(--wiggle))) scale(1.012, 0.994);
+  }
+
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes reveal-pop {
+  0% {
+    transform: scale(0.78, 1.12) translateY(1rem);
+    opacity: 0;
+    filter: drop-shadow(0 0 0 rgba(255, 214, 77, 0));
+  }
+
+  48% {
+    transform: scale(1.11, 0.93) translateY(-0.8rem);
+    opacity: 1;
+    filter: drop-shadow(0 0 2rem rgba(255, 213, 85, 0.64));
+  }
+
+  72% {
+    transform: scale(0.97, 1.04) translateY(0.15rem);
+  }
+
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 1.35rem 1.8rem rgba(80, 47, 17, 0.18));
+  }
+}
+
+@keyframes victory-bounce {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+
+  28% {
+    transform: translateY(-1rem) rotate(-2.2deg) scale(1.055);
+  }
+
+  56% {
+    transform: translateY(0.2rem) rotate(1.6deg) scale(0.985);
+  }
+
+  78% {
+    transform: translateY(-0.35rem) rotate(-0.7deg) scale(1.018);
+  }
+}
+
+@keyframes tap-aura {
+  0% {
+    opacity: 0.72;
+    transform: scale(0.72) rotate(0deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.18) rotate(45deg);
+  }
+}
+
+@keyframes reveal-aura {
+  0% {
+    opacity: 0;
+    transform: scale(0.52) rotate(-32deg);
+  }
+
+  35% {
+    opacity: 0.9;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.55) rotate(80deg);
+  }
+}
+
+@keyframes crack-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-8deg);
+  }
+
+  32% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.5) rotate(7deg);
+  }
+}
+
+@keyframes particle-flight {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(0.4);
+  }
+
+  70% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx), var(--dy), 0) rotate(260deg) scale(1.15);
+  }
+}
+
+@media (max-width: 640px) {
+  .clicker {
+    width: min(92vw, 38rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+
+  .particle-field,
+  .aura,
+  .crack {
+    display: none;
+  }
 }
